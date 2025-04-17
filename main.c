@@ -22,7 +22,7 @@ void send_str(char*);
 void pico_set_led(bool);
 
 static const char *cgi_send_str(int iIndex, int iNumParams, char *pcParam[], char *pcValue[]) {
-	sleep_ms(1000);
+	sleep_ms(1000); // temporary delay while i am testing on my own pc
 	if(strcmp(pcParam[0], "str") == 0) {
 		send_str(pcValue[0]);
 	}
@@ -87,26 +87,26 @@ void send_str(char* _keys) {
 		pico_set_led(true);
 		
 		char _key = _keys[i];
-		if(_key == '%' && empty_or_char(_keys[i+1], '2') && empty_or_char(_keys[i+2], '0')) {
+
+		// handle special http characters
+		if(_key == '%' && empty_or_char(_keys[i+1], '2') && empty_or_char(_keys[i+2], '0')) { // %20 -> space
 			_key = ' ';
 			i += 2;
 		}
-		else if(_key == '%' && empty_or_char(_keys[i+1], '2') && empty_or_char(_keys[i+2], '2')) {
+		else if(_key == '%' && empty_or_char(_keys[i+1], '2') && empty_or_char(_keys[i+2], '1')) { // %21 -> '
+			_key = '\'';
+			i += 2;
+		}
+		else if(_key == '%' && empty_or_char(_keys[i+1], '2') && empty_or_char(_keys[i+2], '2')) { // %22 -> "
 			_key = '\"';
 			i += 2;
 		}
-		else if(_key == '%' && empty_or_char(_keys[i+1], 'n') && empty_or_char(_keys[i+2], 'l')) {
+		else if(_key == '%' && empty_or_char(_keys[i+1], 'n') && empty_or_char(_keys[i+2], 'l')) { // %nl -> \n (newline)
 			_key = '\n';
 			i += 2;
 		}
 
-		uint8_t _keycode = 0;
-		if(_key == '\n') {
-			_keycode = HID_KEY_ENTER;
-		}
-		else {
-			_keycode = ascii_to_keycode[(int)_key][1];
-		}
+		uint8_t _keycode = ascii_to_keycode[(int)_key][1];
 
 		send_hid_key(_keycode, ascii_to_keycode[(int)_key][0] == 1 ? KEYBOARD_MODIFIER_LEFTSHIFT : 0);
 		send_hid_key(HID_KEY_NONE, 0);
