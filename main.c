@@ -12,6 +12,7 @@
 #include "usb_descriptors.h"
 #include "creds.h"
 
+// conversion tables
 static uint8_t const keycode_to_ascii[128][2] =  { HID_KEYCODE_TO_ASCII };
 static uint8_t const ascii_to_keycode[128][2] =  { HID_ASCII_TO_KEYCODE };
 
@@ -21,6 +22,7 @@ void send_str(char*);
 
 void pico_set_led(bool);
 
+// handles http requests :D
 static const char *cgi_send_str(int iIndex, int iNumParams, char *pcParam[], char *pcValue[]) {
 	sleep_ms(1000); // temporary delay while i am testing on my own pc
 	if(strcmp(pcParam[0], "str") == 0) {
@@ -37,21 +39,28 @@ static const tCGI cgi_handlers[] = {
 	}
 };
 
-/*------------- MAIN -------------*/
-int main(void)
-{
+int main(void) {
+	// initialize pi
 	stdio_init_all();
 	
 	cyw43_arch_init();
 	cyw43_arch_enable_sta_mode();
 	
+	// turn led on so i know it is doing net setup
 	pico_set_led(true);
+
+	// init wifi
 	while(cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) { }	
 	
+	// initialize web server
 	httpd_init();
 	http_set_cgi_handlers(cgi_handlers, LWIP_ARRAYSIZE(cgi_handlers));
 	
+	// complete net setup
 	pico_set_led(false);
+
+	// set system clock to multiple of 12MHz
+	set_sys_clock_khz(120000, true);
 	
 	// init device stack on configured roothub port
 	board_init();
@@ -67,6 +76,7 @@ int main(void)
 	}
 }
 
+// sends a specific HID_<X> key and modifier
 static void send_hid_key(uint8_t _key, uint8_t _modifier) {
 	// skip if hid is not ready yet
 	if(!tud_hid_ready()) {
@@ -76,11 +86,15 @@ static void send_hid_key(uint8_t _key, uint8_t _modifier) {
 	uint8_t keycode[6] = { 0 };
 	keycode[0] = _key;
 	
+	// send keystroke
 	tud_hid_keyboard_report(REPORT_ID_KEYBOARD, _modifier, keycode);
 	sleep_ms(5);
+
+	// after 5ms, update the usb device
 	tud_task();
 }
 
+// sends a series of keys to the pico
 void send_str(char* _keys) {
 	int i = 0;
 	while(_keys[i] != '\0') {
@@ -116,32 +130,10 @@ void send_str(char* _keys) {
 	}
 }
 
+// used to determine if a character isn't null terminated and is the correct character
 bool empty_or_char(char _char, char _comp) {
 	return (_char != '\0' && _char == _comp);
 }
-
-// void hid_task(void) {
-// 	// polling interval
-// 	const uint32_t interval_ms = 10;
-// 	static uint32_t start_ms = 0;
-	
-// 	static bool pressed = false;
-	
-// 	if ( board_millis() - start_ms < interval_ms) return; // not enough time
-// 	start_ms += interval_ms;
-	
-// 	uint32_t const btn = board_button_read();
-	
-// 	if(btn) {
-// 		if(!pressed) {
-// 			pressed = true;
-// 			send_str("bleh");
-// 		}
-// 	}
-// 	else {
-// 		pressed = false;
-// 	}
-// }
 
 // Invoked when sent REPORT successfully to host
 // Application can use this to send the next report
@@ -196,11 +188,5 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 }
 
 void pico_set_led(bool led_on) {
-	#if defined(PICO_DEFAULT_LED_PIN)
-	// Just set the GPIO on or off
-	gpio_put(PICO_DEFAULT_LED_PIN, led_on);
-	#elif defined(CYW43_WL_GPIO_LED_PIN)
-	// Ask the wifi "driver" to set the GPIO on or off
 	cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
-	#endif
 }
