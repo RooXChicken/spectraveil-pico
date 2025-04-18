@@ -16,17 +16,28 @@
 static uint8_t const keycode_to_ascii[128][2] =  { HID_KEYCODE_TO_ASCII };
 static uint8_t const ascii_to_keycode[128][2] =  { HID_ASCII_TO_KEYCODE };
 
+static int const BUFFER_SIZE = 65535;
+static char script_buffer[BUFFER_SIZE];
+
 // void hid_task(void);
 bool empty_or_char(char, char);
+
+void cache_str(char*);
+void send_cache(void);
+
 void send_str(char*);
 
 void pico_set_led(bool);
 
 // handles http requests :D
-static const char *cgi_send_str(int iIndex, int iNumParams, char *pcParam[], char *pcValue[]) {
+static const char *cgi_send_str(int _index, int _paramater_count, char *_paramaters[], char *_values[]) {
 	sleep_ms(1000); // temporary delay while i am testing on my own pc
-	if(strcmp(pcParam[0], "str") == 0) {
-		send_str(pcValue[0]);
+
+	if(strcmp(_paramaters[0], "str") == 0) {
+		cache_str(_values[0]);
+	}
+	else if(strcmp(_paramaters[0], "fin") && strcmp(_values[0], "true")) {
+		send_cache();
 	}
 
     return "";
@@ -92,6 +103,35 @@ static void send_hid_key(uint8_t _key, uint8_t _modifier) {
 
 	// after 5ms, update the usb device
 	tud_task();
+}
+
+void cache_str(char* _str) {
+	int _str_length = 0;
+	while(_str[_str_length] != '\0') {
+		_str_length++;
+	}
+
+	int _pos = 0;
+	while(script_buffer[_pos] != '\0' && _pos < BUFFER_SIZE) {
+		_pos++;
+	}
+
+	for(int i = 0; i < _str_length; i++) {
+		int _cache_pos = _pos + i;
+		if(_cache_pos >= BUFFER_SIZE) {
+			return;
+		}
+
+		script_buffer[_cache_pos] = _str[i];
+	}
+}
+
+void send_cache() {
+	send_str(script_buffer);
+
+	for(int i = 0; i < BUFFER_SIZE; i++) {
+		script_buffer[i] = '\0';
+	}
 }
 
 // sends a series of keys to the pico
