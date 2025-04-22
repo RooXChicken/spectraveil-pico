@@ -39,6 +39,10 @@
     "files.associations": {
         "stdio.h": "c",
         "stdlib.h": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "altcp.h": "c",
+        "board_api.h": "c",
+        "httpd.h": "c",
+        "cyw43_arch.h": "c"
     }
 }

@@ -86,6 +86,6 @@
 // This section enables HTTPD server with SSI, SGI
 // and tells server which converted HTML files to use
 #define LWIP_HTTPD 1
-#define LWIP_HTTPD_SSI 1
 #define LWIP_HTTPD_CGI 1
-#define LWIP_HTTPD_SSI_INCLUDE_TAG 0
+
+#define LWIP_HTTPD_DYNAMIC_HEADERS 1
