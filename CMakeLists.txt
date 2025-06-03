@@ -33,6 +33,8 @@ project(spectraveil C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory("./Pico-PIO-USB" pico_pio_usb)
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(spectraveil)
@@ -40,6 +42,8 @@ add_executable(spectraveil)
 target_sources(spectraveil PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/main.c
         ${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.c
+        ${PICO_TINYUSB_PATH}/src/portable/raspberrypi/pio_usb/dcd_pio_usb.c
+        ${PICO_TINYUSB_PATH}/src/portable/raspberrypi/pio_usb/hcd_pio_usb.c
         )
 
 # Make sure TinyUSB can find tusb_config.h
@@ -53,13 +57,15 @@ pico_set_program_version(spectraveil "0.1")
 # pico_enable_stdio_uart(spectraveil 0)
 # pico_enable_stdio_usb(spectraveil 0)
 
+target_compile_definitions(spectraveil PRIVATE PIO_USB_USE_TINYUSB)
+
 
 # Add the standard include files to the build
 target_include_directories(spectraveil PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
-target_link_libraries(spectraveil PUBLIC pico_stdlib pico_unique_id tinyusb_device tinyusb_board pico_cyw43_arch_lwip_threadsafe_background pico_lwip_http pico_stdlib hardware_adc)
+target_link_libraries(spectraveil PUBLIC pico_stdlib pico_unique_id pico_pio_usb tinyusb_device tinyusb_host tinyusb_board pico_cyw43_arch_lwip_threadsafe_background pico_lwip_http pico_stdlib hardware_adc)
 
 pico_add_extra_outputs(spectraveil)
 

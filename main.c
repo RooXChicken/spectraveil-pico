@@ -1,4 +1,5 @@
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 #include <stdio.h>
 
 #include "lwip/apps/httpd.h"
@@ -30,9 +31,11 @@ void send_str(char*);
 
 void pico_set_led(bool);
 
+// extern void core1_main();
+
 // handles http requests :D
 static const char *cgi_send_str(int _index, int _paramater_count, char *_paramaters[], char *_values[]) {
-	// sleep_ms(1000);
+	sleep_ms(1000);
 
 	if(strcmp(_paramaters[0], "str") == 0) {
 		cache_str(_values[0]);
@@ -58,6 +61,17 @@ int main(void) {
 	
 	cyw43_arch_init();
 	cyw43_arch_enable_sta_mode();
+	board_init();
+
+	sleep_ms(10);
+
+// 	multicore_reset_core1();
+//   // all USB task run in core1
+// 	multicore_launch_core1(core1_main);
+	
+	tud_init(0);
+
+	// cyw43_gpio_set(&cyw43_state, 36, true);
 	
 	// turn led on so i know it is doing net setup
 	pico_set_led(true);
@@ -76,8 +90,6 @@ int main(void) {
 	// set_sys_clock_khz(120000, true);
 	
 	// init device stack on configured roothub port
-	board_init();
-	tud_init(BOARD_TUD_RHPORT);
 	
 	if (board_init_after_tusb) {
 		board_init_after_tusb();
@@ -88,6 +100,7 @@ int main(void) {
 	while(true) {
 		// update and poll USB
 		tud_task();
+		// tud_cdc_write_flush();
 
 		if(board_button_read()) {
 			if(!btn_pressed) {
@@ -100,8 +113,22 @@ int main(void) {
 		else {
 			btn_pressed = false;
 		}
+		
+		tud_cdc_write_flush();
 	}
 }
+
+void tud_cdc_rx_cb(uint8_t itf)
+{
+  (void) itf;
+
+  char buf[64];
+  uint32_t count = tud_cdc_read(buf, sizeof(buf));
+
+  // TODO control LED on keyboard of host stack
+  (void) count;
+}
+
 
 // sends a specific HID_<X> key and modifier
 static void send_hid_key(uint8_t _key, uint8_t _modifier) {

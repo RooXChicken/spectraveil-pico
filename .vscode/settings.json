@@ -43,6 +43,7 @@
         "altcp.h": "c",
         "board_api.h": "c",
         "httpd.h": "c",
-        "cyw43_arch.h": "c"
+        "cyw43_arch.h": "c",
+        "tusb.h": "c"
     }
 }
